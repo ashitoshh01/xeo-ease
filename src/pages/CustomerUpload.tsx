@@ -11,8 +11,8 @@ import { calculateCost, formatCurrency, isValidPhone, DEFAULT_PRICING } from '@/
 import { getShop, uploadFile, createJob, subscribeToAuth, getUserProfile, adminLogout } from '@/lib/services';
 import type { CustomerFormData, ShopPricing, CustomerFormItem } from '@/types';
 
-// PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+// PDF.js worker — safely configured for Vite/Vercel
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
 
 const createEmptyItem = (): CustomerFormItem => ({
     id: Math.random().toString(36).substr(2, 9),
@@ -83,7 +83,8 @@ export default function CustomerUpload() {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             return pdf.numPages;
-        } catch {
+        } catch (e) {
+            console.error("Error reading PDF pages:", e);
             return 1;
         }
     }, []);
@@ -138,6 +139,7 @@ export default function CustomerUpload() {
     };
 
     const [notifyMsg, setNotifyMsg] = useState('');
+    const [notifyType, setNotifyType] = useState<'success' | 'error'>('success');
 
     const addNewItem = () => {
         const newItem = createEmptyItem();
@@ -146,6 +148,7 @@ export default function CustomerUpload() {
             items: [...prev.items, newItem]
         }));
 
+        setNotifyType('success');
         setNotifyMsg('New document slot added correctly!');
         setTimeout(() => setNotifyMsg(''), 3000);
 
@@ -160,6 +163,9 @@ export default function CustomerUpload() {
             ...prev,
             items: prev.items.filter(i => i.id !== itemId)
         }));
+        setNotifyType('error');
+        setNotifyMsg('Document deleted from queue.');
+        setTimeout(() => setNotifyMsg(''), 3000);
     };
 
     const validate = (): boolean => {
@@ -341,7 +347,7 @@ export default function CustomerUpload() {
                     </div>
 
                     {notifyMsg && (
-                        <div className="bg-success/10 border border-success/20 text-success px-4 py-3 rounded-xl flex items-center justify-between animate-slide-up">
+                        <div className={`px-4 py-3 rounded-xl flex items-center justify-between animate-slide-up ${notifyType === 'success' ? 'bg-success/10 border border-success/20 text-success' : 'bg-error/10 border border-error/20 text-error'}`}>
                             <span className="text-[14px] font-medium">{notifyMsg}</span>
                         </div>
                     )}
