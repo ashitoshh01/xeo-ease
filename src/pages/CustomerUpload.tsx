@@ -137,11 +137,22 @@ export default function CustomerUpload() {
         }));
     };
 
+    const [notifyMsg, setNotifyMsg] = useState('');
+
     const addNewItem = () => {
+        const newItem = createEmptyItem();
         setFormData(prev => ({
             ...prev,
-            items: [...prev.items, createEmptyItem()]
+            items: [...prev.items, newItem]
         }));
+
+        setNotifyMsg('New document slot added correctly!');
+        setTimeout(() => setNotifyMsg(''), 3000);
+
+        setTimeout(() => {
+            const el = document.getElementById(`doc-item-${newItem.id}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
     };
 
     const removeItem = (itemId: string) => {
@@ -329,8 +340,14 @@ export default function CustomerUpload() {
                         </Button>
                     </div>
 
+                    {notifyMsg && (
+                        <div className="bg-success/10 border border-success/20 text-success px-4 py-3 rounded-xl flex items-center justify-between animate-slide-up">
+                            <span className="text-[14px] font-medium">{notifyMsg}</span>
+                        </div>
+                    )}
+
                     {formData.items.map((item, index) => (
-                        <section key={item.id} className="animate-fade-in stagger-1 bg-white border border-border rounded-2xl p-4 sm:p-5 shadow-sm relative">
+                        <section id={`doc-item-${item.id}`} key={item.id} className="animate-fade-in stagger-1 bg-white border border-border rounded-2xl p-4 sm:p-5 shadow-sm relative scroll-m-24">
                             {/* Remove individual document button */}
                             {formData.items.length > 1 && (
                                 <button

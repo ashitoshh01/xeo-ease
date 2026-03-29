@@ -44,11 +44,16 @@ export default function CustomerAuth() {
             } else {
                 if (!form.name || !form.phone) throw new Error("Name and Phone are required");
                 const cred = await createUserWithEmailAndPassword(auth, dummyEmail, form.password);
-                await saveUserProfile(cred.user.uid, {
-                    uid: cred.user.uid,
-                    name: form.name,
-                    phone: form.phone
-                });
+                try {
+                    await saveUserProfile(cred.user.uid, {
+                        uid: cred.user.uid,
+                        name: form.name,
+                        phone: form.phone
+                    });
+                } catch (dbError: any) {
+                    console.error('Failed to save profile (Firestore Rules issue):', dbError);
+                    // We don't throw here, to allow the user to continue even if DB rules aren't set yet.
+                }
                 navigate('/');
             }
         } catch (err: any) {
