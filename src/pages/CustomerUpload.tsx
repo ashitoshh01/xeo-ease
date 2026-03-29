@@ -211,6 +211,7 @@ export default function CustomerUpload() {
         if (!validate() || validItems.length === 0) return;
 
         setLoading(true);
+        setErrors({});
         setUploadProgress(0);
 
         try {
@@ -241,7 +242,7 @@ export default function CustomerUpload() {
 
             // 3. Open Razorpay Modal
             const options = {
-                key: 'rzp_test_SWym31WQWRb3mG',
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID,
                 amount: totalCost * 100, // paise
                 currency: 'INR',
                 name: 'PrintLoo Queue',
