@@ -12,12 +12,23 @@ import {
     serverTimestamp,
     Timestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { db, storage, auth } from './firebase';
 import type { Shop, Job, JobItem, CustomerFormData, ShopPricing, UserProfile } from '@/types';
 
-const SHOP_ID = import.meta.env.VITE_SHOP_ID || 'demo-shop';
+// Helper to get current shop slug from URL
+export function getActiveShopId(): string {
+    const path = window.location.pathname;
+    const parts = path.split('/').filter(Boolean);
+    // If we're on a shop page (e.g., /jyotienterprise), return that slug
+    if (parts.length > 0 && parts[0] !== 'admin' && parts[0] !== 'login' && parts[0] !== 'signup') {
+        return parts[0];
+    }
+    return import.meta.env.VITE_SHOP_ID || 'demo-shop';
+}
+
+const SHOP_ID = getActiveShopId();
 
 // ─── Shop ────────────────────────────────────────────────
 export async function getShop(): Promise<Shop | null> {
@@ -159,28 +170,24 @@ export async function reopenJob(jobId: string): Promise<void> {
 }
 
 // ─── File Upload ─────────────────────────────────────────
-export function uploadFile(
+export async function uploadFile(
     file: File,
     onProgress: (progress: number) => void
 ): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const timestamp = Date.now();
-        const storageRef = ref(storage, `uploads/${SHOP_ID}/${timestamp}_${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+    const timestamp = Date.now();
+    const storageRef = ref(storage, `uploads/${getActiveShopId()}/${timestamp}_${file.name}`);
 
-        uploadTask.on(
-            'state_changed',
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                onProgress(Math.round(progress));
-            },
-            (error) => reject(error),
-            async () => {
-                const url = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(url);
-            }
-        );
-    });
+    // We use uploadBytes (non-resumable) to avoid strict CORS preflight checks 
+    // that often block the resumable method when the bucket isn't configured for it.
+    try {
+        onProgress(50); // Simple progress signaling
+        const snapshot = await uploadBytes(storageRef, file);
+        onProgress(100);
+        return await getDownloadURL(snapshot.ref);
+    } catch (error) {
+        console.error('Firebase Storage Error:', error);
+        throw error;
+    }
 }
 
 // ─── Auth ────────────────────────────────────────────────
