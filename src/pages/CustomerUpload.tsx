@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Palette, Contrast, BookOpen, FileStack, ChevronDown, Plus, Trash2, LogOut, User as UserIcon } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import Input from '@/components/Input';
@@ -32,6 +32,7 @@ const createEmptyItem = (): CustomerFormItem => ({
 
 export default function CustomerUpload() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [shopName, setShopName] = useState('PrintLoo');
     const [pricing, setPricing] = useState<ShopPricing>(DEFAULT_PRICING);
     const [loading, setLoading] = useState(false);
@@ -294,7 +295,7 @@ export default function CustomerUpload() {
                                 </Button>
                             </div>
                         ) : (
-                            <Link to="/login">
+                            <Link to={`/login?redirect=${encodeURIComponent(location.pathname)}`}>
                                 <Button variant="secondary" size="sm" icon={<UserIcon size={16} />}>
                                     Login / Signup
                                 </Button>

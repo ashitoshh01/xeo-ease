@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -10,6 +10,8 @@ import Card from '@/components/Card';
 
 export default function CustomerAuth() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const redirectTo = searchParams.get('redirect') || '/';
     const [isLogin, setIsLogin] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -40,7 +42,7 @@ export default function CustomerAuth() {
         try {
             if (isLogin) {
                 await signInWithEmailAndPassword(auth, dummyEmail, form.password);
-                navigate('/');
+                navigate(redirectTo);
             } else {
                 if (!form.name || !form.phone) throw new Error("Name and Phone are required");
                 const cred = await createUserWithEmailAndPassword(auth, dummyEmail, form.password);
@@ -54,7 +56,7 @@ export default function CustomerAuth() {
                     console.error('Failed to save profile (Firestore Rules issue):', dbError);
                     // We don't throw here, to allow the user to continue even if DB rules aren't set yet.
                 }
-                navigate('/');
+                navigate(redirectTo);
             }
         } catch (err: any) {
             console.error(err);
@@ -72,7 +74,7 @@ export default function CustomerAuth() {
 
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-            <Link to="/" className="absolute top-6 left-6 text-text-muted hover:text-text-primary transition-colors flex items-center gap-2 text-sm font-medium">
+            <Link to={redirectTo} className="absolute top-6 left-6 text-text-muted hover:text-text-primary transition-colors flex items-center gap-2 text-sm font-medium">
                 <ArrowLeft size={16} /> Back to Upload
             </Link>
 
