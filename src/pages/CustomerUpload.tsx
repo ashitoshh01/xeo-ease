@@ -211,67 +211,76 @@ export default function CustomerUpload() {
         if (!validate() || validItems.length === 0) return;
 
         setLoading(true);
+        setUploadProgress(0);
 
-        const res = await loadRazorpayScript();
-        if (!res) {
-            setErrors({ submit: 'Razorpay SDK failed to load. Please check your connection.' });
+        try {
+            // 1. Upload all files concurrently FIRST
+            // This ensures that if there's a CORS issue or upload failure, the user hasn't paid yet.
+            let uploadedCount = 0;
+            const finalItems = await Promise.all(validItems.map(async (item) => {
+                const url = await uploadFile(item.file!, (prog) => {
+                    setUploadProgress(Math.round(((uploadedCount * 100) + prog) / validItems.length));
+                });
+                uploadedCount++;
+                return {
+                    fileUrl: url,
+                    fileName: item.fileName,
+                    fileType: item.fileType,
+                    pageCount: item.pageCount,
+                    config: item.config
+                };
+            }));
+
+            // 2. Load Razorpay Script
+            const res = await loadRazorpayScript();
+            if (!res) {
+                setErrors({ submit: 'Razorpay SDK failed to load. Please check your connection.' });
+                setLoading(false);
+                return;
+            }
+
+            // 3. Open Razorpay Modal
+            const options = {
+                key: 'rzp_test_SWym31WQWRb3mG',
+                amount: totalCost * 100, // paise
+                currency: 'INR',
+                name: 'PrintLoo Queue',
+                description: `Payment for ${validItems.length} document(s)`,
+                handler: async function (response: any) {
+                    try {
+                        setLoading(true);
+                        const jobId = await createJob(formData, finalItems, totalCost, response.razorpay_payment_id);
+                        navigate(`/confirmation?jobId=${jobId}`);
+                    } catch (error: any) {
+                        console.error('Job creation error:', error);
+                        setErrors({ submit: 'Payment succeeded, but job registration failed. Keep Payment ID: ' + response.razorpay_payment_id });
+                        setLoading(false);
+                    }
+                },
+                prefill: {
+                    name: formData.customerName,
+                    contact: formData.phone,
+                },
+                theme: { color: '#1A56DB' },
+                modal: { ondismiss: function () { setLoading(false); } },
+            };
+
+            const rzp = new (window as any).Razorpay(options);
+            rzp.on('payment.failed', function (res: any) {
+                setErrors({ submit: res.error.description || 'Payment Failed' });
+                setLoading(false);
+            });
+            rzp.open();
+
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            if (error.code === 'storage/unauthorized' || error.message?.includes('CORS')) {
+                setErrors({ submit: 'Upload blocked by security rules. Please ensure your Firebase Storage CORS is configured.' });
+            } else {
+                setErrors({ submit: 'Failed to upload documents. Please try again or check your internet.' });
+            }
             setLoading(false);
-            return;
         }
-
-        const options = {
-            key: 'rzp_test_SWym31WQWRb3mG',
-            amount: totalCost * 100, // paise
-            currency: 'INR',
-            name: 'PrintLoo Queue',
-            description: `Payment for ${validItems.length} document(s)`,
-            handler: async function (response: any) {
-                try {
-                    setLoading(true);
-
-                    // Upload all files concurrently and get their download URLs 
-                    let uploadedCount = 0;
-                    const finalItems = await Promise.all(validItems.map(async (item) => {
-                        const url = await uploadFile(item.file!, (prog) => {
-                            // Rough overall progress calculation
-                            setUploadProgress(Math.round(((uploadedCount * 100) + prog) / validItems.length));
-                        });
-                        uploadedCount++;
-                        return {
-                            fileUrl: url,
-                            fileName: item.fileName,
-                            fileType: item.fileType,
-                            pageCount: item.pageCount,
-                            config: item.config
-                        };
-                    }));
-
-                    const jobId = await createJob(formData, finalItems, totalCost, response.razorpay_payment_id);
-                    navigate(`/confirmation?jobId=${jobId}`);
-                } catch (error: any) {
-                    console.error('Submission error:', error);
-                    // Critical error if money is already paid
-                    setErrors({ submit: 'Payment succeeded, but we couldn\'t upload your files. Please keep your Payment ID: ' + response.razorpay_payment_id });
-                    setLoading(false);
-                } finally {
-                    // Safety check to ensure loading is unset 
-                    setLoading(false);
-                }
-            },
-            prefill: {
-                name: formData.customerName,
-                contact: formData.phone,
-            },
-            theme: { color: '#1A56DB' },
-            modal: { ondismiss: function () { setLoading(false); } },
-        };
-
-        const rzp = new (window as any).Razorpay(options);
-        rzp.on('payment.failed', function (res: any) {
-            setErrors({ submit: res.error.description || 'Payment Failed' });
-            setLoading(false);
-        });
-        rzp.open();
     };
 
     return (
