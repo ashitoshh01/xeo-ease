@@ -1,0 +1,331 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Printer, Palette, Contrast, BookOpen, FileStack, ChevronDown } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+import UploadZone from '@/components/UploadZone';
+import PrintConfigToggle from '@/components/PrintConfigToggle';
+import CopiesStepper from '@/components/CopiesStepper';
+import { calculateCost, getPerPageRate, formatCurrency, isValidPhone, DEFAULT_PRICING } from '@/lib/utils';
+import { getShop, uploadFile, createJob } from '@/lib/services';
+import type { CustomerFormData, ShopPricing } from '@/types';
+
+// PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+export default function CustomerUpload() {
+    const navigate = useNavigate();
+    const [shopName, setShopName] = useState('PrintLoo');
+    const [pricing, setPricing] = useState<ShopPricing>(DEFAULT_PRICING);
+    const [loading, setLoading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const [formData, setFormData] = useState<CustomerFormData>({
+        customerName: '',
+        phone: '',
+        file: null,
+        fileName: '',
+        fileSize: 0,
+        fileType: '',
+        pageCount: 0,
+        config: {
+            colorMode: 'bw',
+            sides: 'single',
+            pageSize: 'A4',
+            copies: 1,
+            specialInstructions: '',
+        },
+    });
+
+    useEffect(() => {
+        getShop().then((shop) => {
+            if (shop) {
+                setShopName(shop.shopName);
+                setPricing(shop.pricing);
+            }
+        });
+    }, []);
+
+    const totalCost = calculateCost(formData.config, formData.pageCount, pricing);
+    const perPage = getPerPageRate(formData.config, pricing);
+
+    const countPdfPages = useCallback(async (file: File) => {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            return pdf.numPages;
+        } catch {
+            return 1;
+        }
+    }, []);
+
+    const handleFileSelect = useCallback(
+        async (file: File) => {
+            const ext = file.name.split('.').pop()?.toLowerCase() || '';
+            let pageCount = 1;
+
+            if (ext === 'pdf') {
+                pageCount = await countPdfPages(file);
+            }
+
+            setFormData((prev) => ({
+                ...prev,
+                file,
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: ext,
+                pageCount,
+            }));
+            setErrors((prev) => ({ ...prev, file: '' }));
+        },
+        [countPdfPages]
+    );
+
+    const handleFileRemove = useCallback(() => {
+        setFormData((prev) => ({
+            ...prev,
+            file: null,
+            fileName: '',
+            fileSize: 0,
+            fileType: '',
+            pageCount: 0,
+        }));
+        setUploadProgress(0);
+    }, []);
+
+    const validate = (): boolean => {
+        const newErrors: Record<string, string> = {};
+
+        if (!formData.customerName.trim()) newErrors.customerName = 'Name is required';
+        if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+        else if (!isValidPhone(formData.phone)) newErrors.phone = 'Enter a valid 10-digit mobile number';
+        if (!formData.file) newErrors.file = 'Please upload a document';
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async () => {
+        if (!validate()) return;
+        if (!formData.file) return;
+
+        setLoading(true);
+        try {
+            // Upload file to Firebase Storage
+            const fileUrl = await uploadFile(formData.file, setUploadProgress);
+
+            // For demo/dev: skip Razorpay and create job directly
+            // In production, this would trigger Razorpay checkout first
+            const jobId = await createJob(formData, fileUrl, totalCost, 'demo_payment_' + Date.now());
+
+            navigate(`/confirmation?jobId=${jobId}`);
+        } catch (error) {
+            console.error('Error submitting job:', error);
+            setErrors({ submit: 'Something went wrong. Please try again.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-background">
+            {/* Header */}
+            <header className="bg-white border-b border-border sticky top-0 z-10">
+                <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-primary flex items-center justify-center">
+                        <Printer size={20} className="text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-[17px] font-semibold text-text-primary leading-tight">PrintLoo</h1>
+                        <p className="text-[12px] text-text-secondary leading-tight">{shopName}</p>
+                    </div>
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="max-w-2xl mx-auto px-4 py-6 pb-32">
+                <div className="flex flex-col gap-8">
+                    {/* Zone 1: Contact Info */}
+                    <section className="animate-fade-in">
+                        <h2 className="text-[17px] font-semibold text-text-primary mb-4">Your Details</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                                label="Your Name"
+                                placeholder="Enter your name"
+                                value={formData.customerName}
+                                onChange={(e) => {
+                                    setFormData((prev) => ({ ...prev, customerName: e.target.value }));
+                                    setErrors((prev) => ({ ...prev, customerName: '' }));
+                                }}
+                                error={errors.customerName}
+                            />
+                            <Input
+                                label="Mobile Number"
+                                placeholder="10-digit mobile number"
+                                type="tel"
+                                maxLength={10}
+                                value={formData.phone}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    setFormData((prev) => ({ ...prev, phone: val }));
+                                    setErrors((prev) => ({ ...prev, phone: '' }));
+                                }}
+                                error={errors.phone}
+                            />
+                        </div>
+                    </section>
+
+                    {/* Zone 2: Upload */}
+                    <section className="animate-fade-in stagger-1">
+                        <UploadZone
+                            file={formData.file}
+                            pageCount={formData.pageCount}
+                            uploadProgress={uploadProgress}
+                            onFile={handleFileSelect}
+                            onRemove={handleFileRemove}
+                        />
+                        {errors.file && (
+                            <p className="text-[12px] text-error font-medium mt-2">{errors.file}</p>
+                        )}
+                    </section>
+
+                    {/* Zone 3: Print Settings */}
+                    <section className="animate-fade-in stagger-2">
+                        <h2 className="text-[17px] font-semibold text-text-primary mb-4">Print Settings</h2>
+                        <div className="flex flex-col gap-5">
+                            <PrintConfigToggle
+                                label="Colour Mode"
+                                options={[
+                                    { value: 'bw', label: 'Black & White', icon: <Contrast size={20} /> },
+                                    { value: 'color', label: 'Colour', icon: <Palette size={20} /> },
+                                ]}
+                                selected={formData.config.colorMode}
+                                onChange={(val) =>
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        config: { ...prev.config, colorMode: val as 'bw' | 'color' },
+                                    }))
+                                }
+                            />
+
+                            <PrintConfigToggle
+                                label="Print Sides"
+                                options={[
+                                    { value: 'single', label: 'Single-sided', icon: <FileStack size={20} /> },
+                                    { value: 'double', label: 'Double-sided', icon: <BookOpen size={20} /> },
+                                ]}
+                                selected={formData.config.sides}
+                                onChange={(val) =>
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        config: { ...prev.config, sides: val as 'single' | 'double' },
+                                    }))
+                                }
+                            />
+
+                            {/* Page Size */}
+                            <div className="flex flex-col gap-2">
+                                <span className="text-[13px] font-medium text-text-secondary uppercase tracking-wider">
+                                    Page Size
+                                </span>
+                                <div className="relative">
+                                    <select
+                                        value={formData.config.pageSize}
+                                        onChange={(e) =>
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                config: { ...prev.config, pageSize: e.target.value as 'A4' | 'A3' | 'Letter' },
+                                            }))
+                                        }
+                                        className="w-full h-12 px-4 pr-10 rounded-xl border border-border bg-white text-text-primary
+                               appearance-none cursor-pointer focus:border-blue-primary focus:ring-2 focus:ring-blue-primary/20 outline-none"
+                                    >
+                                        <option value="A4">A4</option>
+                                        <option value="A3">A3</option>
+                                        <option value="Letter">Letter</option>
+                                    </select>
+                                    <ChevronDown
+                                        size={16}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Copies */}
+                            <CopiesStepper
+                                label="Number of Copies"
+                                value={formData.config.copies}
+                                onChange={(val) =>
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        config: { ...prev.config, copies: val },
+                                    }))
+                                }
+                            />
+                        </div>
+                    </section>
+
+                    {/* Zone 4: Special Instructions */}
+                    <section className="animate-fade-in stagger-3">
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[13px] font-medium text-text-secondary uppercase tracking-wider">
+                                    Special Instructions
+                                </span>
+                                <span className="text-[12px] text-text-muted">
+                                    {formData.config.specialInstructions.length}/120
+                                </span>
+                            </div>
+                            <textarea
+                                value={formData.config.specialInstructions}
+                                onChange={(e) => {
+                                    if (e.target.value.length <= 120) {
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            config: { ...prev.config, specialInstructions: e.target.value },
+                                        }));
+                                    }
+                                }}
+                                placeholder="Any special print instructions? (optional)"
+                                rows={3}
+                                className="w-full px-4 py-3 rounded-xl border border-border bg-white text-text-primary
+                           placeholder:text-text-muted resize-none outline-none
+                           focus:border-blue-primary focus:ring-2 focus:ring-blue-primary/20"
+                            />
+                        </div>
+                    </section>
+                </div>
+            </main>
+
+            {/* Zone 5: Cost Summary — Sticky Bottom */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-t-blue-primary z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+                <div className="max-w-2xl mx-auto px-4 py-4">
+                    {formData.pageCount > 0 && (
+                        <div className="flex justify-between text-[13px] text-text-secondary mb-3">
+                            <span>
+                                {formatCurrency(perPage)} × {formData.pageCount} pages × {formData.config.copies}{' '}
+                                {formData.config.copies === 1 ? 'copy' : 'copies'}
+                            </span>
+                            <span className="font-semibold text-text-primary">{formatCurrency(totalCost)}</span>
+                        </div>
+                    )}
+                    {errors.submit && (
+                        <p className="text-[12px] text-error font-medium mb-2">{errors.submit}</p>
+                    )}
+                    <Button
+                        variant="primary"
+                        className="w-full"
+                        loading={loading}
+                        onClick={handleSubmit}
+                        disabled={!formData.file}
+                    >
+                        {totalCost > 0 ? `Pay ${formatCurrency(totalCost)} & Join Queue` : 'Upload & Join Queue'}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
