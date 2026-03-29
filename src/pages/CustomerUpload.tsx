@@ -159,7 +159,7 @@ export default function CustomerUpload() {
         else if (!user && !isValidPhone(formData.phone)) newErrors.phone = 'Enter a valid 10-digit mobile number';
 
         let hasFiles = false;
-        formData.items.forEach((item, index) => {
+        formData.items.forEach((item) => {
             if (item.file) hasFiles = true;
             else if (formData.items.length === 1) newErrors[`file_${item.id}`] = 'Please upload a document';
         });

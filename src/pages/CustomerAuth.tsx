@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User as UserIcon, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { saveUserProfile } from '@/lib/services';
@@ -16,23 +16,34 @@ export default function CustomerAuth() {
 
     const [form, setForm] = useState({
         name: '',
-        email: '',
+        phone: '',
         password: '',
-        phone: ''
+        confirmPassword: ''
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        if (form.phone.length !== 10) {
+            return setError('Please enter a valid 10-digit mobile number.');
+        }
+
+        if (!isLogin && form.password !== form.confirmPassword) {
+            return setError('Passwords do not match.');
+        }
+
         setLoading(true);
+        // Map phone to a dummy email for Firebase Auth
+        const dummyEmail = `${form.phone}@printloo.com`;
 
         try {
             if (isLogin) {
-                await signInWithEmailAndPassword(auth, form.email, form.password);
+                await signInWithEmailAndPassword(auth, dummyEmail, form.password);
                 navigate('/');
             } else {
                 if (!form.name || !form.phone) throw new Error("Name and Phone are required");
-                const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
+                const cred = await createUserWithEmailAndPassword(auth, dummyEmail, form.password);
                 await saveUserProfile(cred.user.uid, {
                     uid: cred.user.uid,
                     name: form.name,
@@ -41,7 +52,14 @@ export default function CustomerAuth() {
                 navigate('/');
             }
         } catch (err: any) {
-            setError(err.message || 'Authentication failed');
+            console.error(err);
+            if (err.code === 'auth/email-already-in-use') {
+                setError('An account with this mobile number already exists.');
+            } else if (err.code === 'auth/invalid-credential') {
+                setError('Invalid mobile number or password.');
+            } else {
+                setError(err.message || 'Authentication failed');
+            }
         } finally {
             setLoading(false);
         }
@@ -72,31 +90,21 @@ export default function CustomerAuth() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                     {!isLogin && (
-                        <>
-                            <Input
-                                label="Full Name"
-                                placeholder="John Doe"
-                                value={form.name}
-                                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                required
-                            />
-                            <Input
-                                type="tel"
-                                label="Mobile Number"
-                                placeholder="10-digit number"
-                                value={form.phone}
-                                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\\D/g, '').slice(0, 10) })}
-                                required
-                            />
-                        </>
+                        <Input
+                            label="Full Name"
+                            placeholder="John Doe"
+                            value={form.name}
+                            onChange={(e) => setForm({ ...form, name: e.target.value })}
+                            required
+                        />
                     )}
 
                     <Input
-                        type="email"
-                        label="Email Address"
-                        placeholder="you@email.com"
-                        value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        type="tel"
+                        label="Mobile Number"
+                        placeholder="10-digit number"
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                         required
                     />
 
@@ -108,6 +116,17 @@ export default function CustomerAuth() {
                         onChange={(e) => setForm({ ...form, password: e.target.value })}
                         required
                     />
+
+                    {!isLogin && (
+                        <Input
+                            type="password"
+                            label="Re-enter Password"
+                            placeholder="••••••••"
+                            value={form.confirmPassword}
+                            onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                            required
+                        />
+                    )}
 
                     <Button type="submit" variant="primary" loading={loading} className="w-full mt-2">
                         {isLogin ? 'Sign In' : 'Create Account'}

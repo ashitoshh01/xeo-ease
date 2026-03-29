@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Phone, FileText, Image, File, CheckCircle2, ExternalLink, RotateCcw, Download, Clock } from 'lucide-react';
+import { Phone, FileText, Image, File, CheckCircle2, ExternalLink, RotateCcw, Clock } from 'lucide-react';
 import type { Job } from '@/types';
 import Badge from './Badge';
 import Button from './Button';
