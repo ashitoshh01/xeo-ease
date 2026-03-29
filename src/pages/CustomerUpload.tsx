@@ -4,7 +4,6 @@ import { Printer, Palette, Contrast, BookOpen, FileStack, ChevronDown } from 'lu
 import * as pdfjsLib from 'pdfjs-dist';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
-import Card from '@/components/Card';
 import UploadZone from '@/components/UploadZone';
 import PrintConfigToggle from '@/components/PrintConfigToggle';
 import CopiesStepper from '@/components/CopiesStepper';
