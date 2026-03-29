@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Printer, LayoutDashboard, BarChart3, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Settings, LogOut, Menu, X } from 'lucide-react';
 import { subscribeToAuth, adminLogout, getShop } from '@/lib/services';
 import PageLoader from '@/components/PageLoader';
 import type { User } from 'firebase/auth';
@@ -61,12 +61,9 @@ export default function AdminLayout() {
             >
                 {/* Sidebar Header */}
                 <div className="flex items-center gap-3 px-5 h-16 border-b border-white/10">
-                    <div className="w-9 h-9 rounded-lg bg-blue-primary flex items-center justify-center">
-                        <Printer size={18} className="text-white" />
-                    </div>
+                    <img src="/logo.png" alt="PrintLoo" className="h-[32px] w-auto object-contain" />
                     <div className="flex-1">
-                        <p className="text-[15px] font-semibold text-white leading-tight">PrintLoo</p>
-                        <p className="text-[11px] text-text-muted leading-tight">{shopName}</p>
+                        <p className="text-[11px] text-text-muted leading-tight mt-1">{shopName}</p>
                     </div>
                     <button
                         className="lg:hidden w-8 h-8 flex items-center justify-center text-text-muted hover:text-white cursor-pointer"

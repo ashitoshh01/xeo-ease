@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Printer, Palette, Contrast, BookOpen, FileStack, ChevronDown } from 'lucide-react';
+import { Palette, Contrast, BookOpen, FileStack, ChevronDown } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
@@ -107,26 +107,68 @@ export default function CustomerUpload() {
         return Object.keys(newErrors).length === 0;
     };
 
+    const loadRazorpayScript = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
     const handleSubmit = async () => {
         if (!validate()) return;
         if (!formData.file) return;
 
         setLoading(true);
-        try {
-            // Upload file to Firebase Storage
-            const fileUrl = await uploadFile(formData.file, setUploadProgress);
 
-            // For demo/dev: skip Razorpay and create job directly
-            // In production, this would trigger Razorpay checkout first
-            const jobId = await createJob(formData, fileUrl, totalCost, 'demo_payment_' + Date.now());
-
-            navigate(`/confirmation?jobId=${jobId}`);
-        } catch (error) {
-            console.error('Error submitting job:', error);
-            setErrors({ submit: 'Something went wrong. Please try again.' });
-        } finally {
+        const res = await loadRazorpayScript();
+        if (!res) {
+            setErrors({ submit: 'Razorpay SDK failed to load. Please check your connection.' });
             setLoading(false);
+            return;
         }
+
+        const options = {
+            key: 'rzp_test_SWym31WQWRb3mG',
+            amount: totalCost * 100, // paise
+            currency: 'INR',
+            name: 'PrintLoo Queue',
+            description: `Payment for ${formData.pageCount} page(s) print`,
+            handler: async function (response: any) {
+                // Payment succeeded, now upload and create job
+                try {
+                    setLoading(true);
+                    const fileUrl = await uploadFile(formData.file!, setUploadProgress);
+                    const jobId = await createJob(formData, fileUrl, totalCost, response.razorpay_payment_id);
+                    navigate(`/confirmation?jobId=${jobId}`);
+                } catch (error) {
+                    console.error('Submission error:', error);
+                    setErrors({ submit: 'Payment succeeded, but job creation failed. Please contact the shop.' });
+                    setLoading(false);
+                }
+            },
+            prefill: {
+                name: formData.customerName,
+                contact: formData.phone,
+            },
+            theme: {
+                color: '#1A56DB',
+            },
+            modal: {
+                ondismiss: function () {
+                    setLoading(false);
+                },
+            },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', function (response: any) {
+            setErrors({ submit: response.error.description || 'Payment Failed' });
+            setLoading(false);
+        });
+        rzp.open();
     };
 
     return (
@@ -134,12 +176,9 @@ export default function CustomerUpload() {
             {/* Header */}
             <header className="bg-white border-b border-border sticky top-0 z-10">
                 <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-primary flex items-center justify-center">
-                        <Printer size={20} className="text-white" />
-                    </div>
+                    <img src="/logo.png" alt="PrintLoo" className="h-[40px] w-auto object-contain cursor-pointer" />
                     <div>
-                        <h1 className="text-[17px] font-semibold text-text-primary leading-tight">PrintLoo</h1>
-                        <p className="text-[12px] text-text-secondary leading-tight">{shopName}</p>
+                        <p className="text-[12px] text-text-secondary leading-tight mt-1">{shopName}</p>
                     </div>
                 </div>
             </header>

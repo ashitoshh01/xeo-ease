@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle2, Clock, FileText, Share2, Printer, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, Clock, FileText, Share2, ArrowLeft } from 'lucide-react';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
@@ -69,10 +69,7 @@ export default function Confirmation() {
             {/* Header */}
             <header className="bg-white border-b border-border">
                 <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-primary flex items-center justify-center">
-                        <Printer size={20} className="text-white" />
-                    </div>
-                    <h1 className="text-[17px] font-semibold text-text-primary">PrintLoo</h1>
+                    <img src="/logo.png" alt="PrintLoo" className="h-[40px] w-auto object-contain cursor-pointer" />
                 </div>
             </header>
 

@@ -21,9 +21,14 @@ const SHOP_ID = import.meta.env.VITE_SHOP_ID || 'demo-shop';
 
 // ─── Shop ────────────────────────────────────────────────
 export async function getShop(): Promise<Shop | null> {
-    const snap = await getDoc(doc(db, 'shops', SHOP_ID));
-    if (!snap.exists()) return null;
-    return { shopId: snap.id, ...snap.data() } as Shop;
+    try {
+        const snap = await getDoc(doc(db, 'shops', SHOP_ID));
+        if (!snap.exists()) return null;
+        return { shopId: snap.id, ...snap.data() } as Shop;
+    } catch (e) {
+        console.error('Firestore Permission Error. Please set allow read, write: if true; in Firebase Console -> Firestore -> Rules', e);
+        return null;
+    }
 }
 
 export async function updateShopSettings(data: Partial<Shop>): Promise<void> {
