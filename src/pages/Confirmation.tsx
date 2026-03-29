@@ -111,46 +111,51 @@ export default function Confirmation() {
                 {/* Print Specs Summary */}
                 <Card className="mb-6 animate-fade-in stagger-2">
                     <h3 className="text-[15px] font-semibold text-text-primary mb-3">Print Specifications</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="flex justify-between">
-                            <span className="text-[13px] text-text-secondary">Document</span>
-                            <span className="text-[13px] font-medium text-text-primary truncate ml-2 max-w-[140px]">
-                                {job.fileName}
-                            </span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-[13px] text-text-secondary">Pages</span>
-                            <span className="text-[13px] font-medium text-text-primary">{job.pageCount}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-[13px] text-text-secondary">Colour</span>
-                            <Badge variant={job.config.colorMode === 'color' ? 'color' : 'bw'}>
-                                {job.config.colorMode === 'color' ? 'Colour' : 'B&W'}
-                            </Badge>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-[13px] text-text-secondary">Sides</span>
-                            <span className="text-[13px] font-medium text-text-primary">
-                                {job.config.sides === 'single' ? 'Single' : 'Double'}-sided
-                            </span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-[13px] text-text-secondary">Size</span>
-                            <span className="text-[13px] font-medium text-text-primary">{job.config.pageSize}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-[13px] text-text-secondary">Copies</span>
-                            <span className="text-[13px] font-medium text-text-primary">{job.config.copies}</span>
-                        </div>
+                    <div className="flex flex-col gap-4">
+                        {job.items?.map((item, idx) => (
+                            <div key={idx} className="bg-background rounded-lg p-3 border border-border/50">
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-[13px] font-medium text-text-primary truncate max-w-[200px]">
+                                        {item.fileName}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                                    <div className="flex justify-between">
+                                        <span className="text-[12px] text-text-secondary">Pages</span>
+                                        <span className="text-[12px] font-medium text-text-primary">{item.pageCount}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[12px] text-text-secondary">Colour</span>
+                                        <Badge variant={item.config.colorMode === 'color' ? 'color' : 'bw'}>
+                                            {item.config.colorMode === 'color' ? 'Colour' : 'B&W'}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[12px] text-text-secondary">Sides</span>
+                                        <span className="text-[12px] font-medium text-text-primary">
+                                            {item.config.sides === 'single' ? 'Single' : 'Double'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[12px] text-text-secondary">Size</span>
+                                        <span className="text-[12px] font-medium text-text-primary">{item.config.pageSize}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[12px] text-text-secondary">Copies</span>
+                                        <span className="text-[12px] font-medium text-text-primary">{item.config.copies}</span>
+                                    </div>
+                                </div>
+                                {item.config.specialInstructions && (
+                                    <div className="mt-2 pt-2 border-t border-border/50">
+                                        <p className="text-[12px] text-text-muted uppercase tracking-wider mb-1">
+                                            Instructions
+                                        </p>
+                                        <p className="text-[12px] text-text-primary">{item.config.specialInstructions}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
-                    {job.config.specialInstructions && (
-                        <div className="mt-3 pt-3 border-t border-border">
-                            <p className="text-[12px] text-text-muted uppercase tracking-wider mb-1">
-                                Special Instructions
-                            </p>
-                            <p className="text-[13px] text-text-primary">{job.config.specialInstructions}</p>
-                        </div>
-                    )}
                     <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
                         <span className="text-[14px] font-semibold text-text-primary">Total Paid</span>
                         <span className="text-lg font-bold text-blue-primary">{formatCurrency(job.amountPaid)}</span>

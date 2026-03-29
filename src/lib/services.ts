@@ -15,7 +15,7 @@ import {
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { db, storage, auth } from './firebase';
-import type { Shop, Job, CustomerFormData, ShopPricing } from '@/types';
+import type { Shop, Job, JobItem, CustomerFormData, ShopPricing, UserProfile } from '@/types';
 
 const SHOP_ID = import.meta.env.VITE_SHOP_ID || 'demo-shop';
 
@@ -122,7 +122,7 @@ export async function getNextTokenNumber(): Promise<number> {
 
 export async function createJob(
     formData: CustomerFormData,
-    fileUrl: string,
+    items: JobItem[],
     amountPaid: number,
     razorpayPaymentId: string
 ): Promise<string> {
@@ -132,11 +132,7 @@ export async function createJob(
         tokenNumber,
         customerName: formData.customerName,
         phone: formData.phone,
-        fileUrl,
-        fileName: formData.fileName,
-        fileType: formData.fileType,
-        pageCount: formData.pageCount,
-        config: formData.config,
+        items,
         amountPaid,
         razorpayPaymentId,
         status: 'pending',
@@ -200,6 +196,22 @@ export async function adminLogout(): Promise<void> {
 export function subscribeToAuth(callback: (user: User | null) => void): () => void {
     return onAuthStateChanged(auth, callback);
 }
+
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+    try {
+        const snap = await getDoc(doc(db, 'users', uid));
+        if (snap.exists()) return snap.data() as UserProfile;
+    } catch {
+        return null;
+    }
+    return null;
+}
+
+export async function saveUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
+    const { setDoc } = await import('firebase/firestore');
+    await setDoc(doc(db, 'users', uid), { uid, ...data }, { merge: true });
+}
+
 
 // ─── Analytics Helpers ───────────────────────────────────
 export async function getWeeklyRevenue(): Promise<{ day: string; revenue: number; date: string }[]> {

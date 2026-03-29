@@ -8,7 +8,7 @@ export const DEFAULT_PRICING: ShopPricing = {
     bw_single: 2,
     bw_double: 3,
     color_single: 10,
-    color_double: 10,
+    color_double: 20,
     minimum_charge: 0,
 };
 

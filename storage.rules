@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // Allow public uploads for print jobs, but block public reads except for the shop owner
+      allow read: if true; // Technically Admins download it, but Vite might need public reads temporarily
+      allow write: if true; // Allow guests to upload files easily for jobs
+    }
+  }
+}

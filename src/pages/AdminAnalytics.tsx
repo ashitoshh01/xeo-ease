@@ -46,8 +46,8 @@ export default function AdminAnalytics() {
             )
             : 0;
 
-    const colorJobs = todayJobs.filter((j) => j.config.colorMode === 'color').length;
-    const bwJobs = todayJobs.filter((j) => j.config.colorMode === 'bw').length;
+    const colorJobs = todayJobs.reduce((sum, j) => sum + (j.items?.filter(i => i.config.colorMode === 'color').length || 0), 0);
+    const bwJobs = todayJobs.reduce((sum, j) => sum + (j.items?.filter(i => i.config.colorMode === 'bw').length || 0), 0);
 
     const pieData = [
         { name: 'B&W', value: bwJobs || 1 },
@@ -57,8 +57,10 @@ export default function AdminAnalytics() {
     // File type breakdown
     const fileTypeCounts: Record<string, number> = {};
     todayJobs.forEach((j) => {
-        const ext = (j.fileType || 'unknown').toUpperCase();
-        fileTypeCounts[ext] = (fileTypeCounts[ext] || 0) + 1;
+        j.items?.forEach(item => {
+            const ext = (item.fileType || 'unknown').toUpperCase();
+            fileTypeCounts[ext] = (fileTypeCounts[ext] || 0) + 1;
+        });
     });
     const fileTypes = Object.entries(fileTypeCounts)
         .map(([type, count]) => ({

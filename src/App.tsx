@@ -11,6 +11,8 @@ const AdminQueue = lazy(() => import('./pages/AdminQueue'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 
+const CustomerAuth = lazy(() => import('./pages/CustomerAuth'));
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -19,6 +21,7 @@ export default function App() {
           {/* Customer Routes */}
           <Route path="/" element={<CustomerUpload />} />
           <Route path="/confirmation" element={<Confirmation />} />
+          <Route path="/login" element={<CustomerAuth />} />
 
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />

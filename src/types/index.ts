@@ -24,6 +24,13 @@ export interface ShopPricing {
     minimum_charge: number;
 }
 
+// ─── User Profile ────────────────────────────────────────
+export interface UserProfile {
+    uid: string;
+    name: string;
+    phone: string;
+}
+
 // ─── Shop ────────────────────────────────────────────────
 export interface Shop {
     shopId: string;
@@ -35,17 +42,20 @@ export interface Shop {
     createdAt: Timestamp;
 }
 
-// ─── Job ─────────────────────────────────────────────────
+export interface JobItem {
+    fileUrl?: string; // only populated after upload or when reading from DB
+    fileName: string;
+    fileType: string;
+    pageCount: number;
+    config: PrintConfig;
+}
+
 export interface Job {
     jobId: string;
     tokenNumber: number;
     customerName: string;
     phone: string;
-    fileUrl: string;
-    fileName: string;
-    fileType: string;
-    pageCount: number;
-    config: PrintConfig;
+    items: JobItem[];
     amountPaid: number;
     razorpayPaymentId: string;
     status: JobStatus;
@@ -54,15 +64,20 @@ export interface Job {
 }
 
 // ─── Form Data (before submission) ───────────────────────
-export interface CustomerFormData {
-    customerName: string;
-    phone: string;
+export interface CustomerFormItem {
+    id: string; // purely for local state UI tracking
     file: File | null;
     fileName: string;
     fileSize: number;
     fileType: string;
     pageCount: number;
     config: PrintConfig;
+}
+
+export interface CustomerFormData {
+    customerName: string;
+    phone: string;
+    items: CustomerFormItem[];
 }
 
 // ─── Analytics Types ─────────────────────────────────────

@@ -24,10 +24,10 @@ export default function JobCard({ job, onMarkPrinted, onReopen }: JobCardProps) 
 
     const statusBorderClass =
         job.status === 'pending'
-            ? 'job-card-pending'
+            ? 'border-l-4 border-l-warning'
             : job.status === 'inprogress'
-                ? 'job-card-inprogress'
-                : 'job-card-printed';
+                ? 'border-l-4 border-l-blue-primary'
+                : 'border-l-4 border-l-success';
 
     const createdDate = job.createdAt?.toDate ? job.createdAt.toDate() : new Date();
 
@@ -50,6 +50,8 @@ export default function JobCard({ job, onMarkPrinted, onReopen }: JobCardProps) 
         }
     };
 
+    const totalDocs = job.items?.length || 0;
+
     return (
         <div
             className={`
@@ -60,101 +62,97 @@ export default function JobCard({ job, onMarkPrinted, onReopen }: JobCardProps) 
       `}
         >
             {/* Header */}
-            <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-start justify-between gap-3 mb-4">
                 <div className="flex items-center gap-3">
                     <span className="text-lg font-bold text-blue-primary">#{String(job.tokenNumber).padStart(3, '0')}</span>
-                    <span className="text-[15px] font-medium text-text-primary">{job.customerName}</span>
+                    <div>
+                        <span className="text-[15px] font-medium text-text-primary block">{job.customerName}</span>
+                        <a
+                            href={`tel:${job.phone}`}
+                            className="flex items-center gap-1 text-[12px] text-text-secondary hover:text-blue-primary transition-colors mt-0.5"
+                        >
+                            <Phone size={12} />
+                            <span>{job.phone}</span>
+                        </a>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     <Badge variant={job.status as 'pending' | 'inprogress' | 'printed'}>
                         {job.status === 'pending' ? 'Pending' : job.status === 'inprogress' ? 'In Progress' : 'Printed'}
                     </Badge>
+                    <div className="text-[14px] font-semibold text-text-primary">
+                        {formatCurrency(job.amountPaid)}
+                    </div>
                 </div>
             </div>
 
-            {/* Details grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                {/* Phone */}
-                <a
-                    href={`tel:${job.phone}`}
-                    className="flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-blue-primary transition-colors"
-                >
-                    <Phone size={13} />
-                    <span>{job.phone}</span>
-                </a>
-
-                {/* File */}
-                <div className="flex items-center gap-1.5 text-[13px] text-text-secondary">
-                    {getFileIcon(getFileExtension(job.fileName))}
-                    <span className="truncate">{job.fileName}</span>
-                </div>
-
-                {/* Amount */}
-                <div className="text-[13px] font-semibold text-text-primary">
-                    {formatCurrency(job.amountPaid)}
-                </div>
-
-                {/* Time */}
+            <div className="flex items-center gap-4 mb-4 pb-4 border-b border-border">
                 <div className="flex items-center gap-1.5 text-[13px] text-text-muted">
                     <Clock size={13} />
                     <span>{timeAgo(createdDate)}</span>
                 </div>
-            </div>
-
-            {/* Specs */}
-            <div className="flex flex-wrap gap-2 mb-3">
-                <Badge variant={job.config.colorMode === 'color' ? 'color' : 'bw'}>
-                    {job.config.colorMode === 'color' ? 'Colour' : 'B&W'}
-                </Badge>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[12px] font-medium bg-background text-text-secondary">
-                    {job.config.sides === 'single' ? 'Single-sided' : 'Double-sided'}
-                </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[12px] font-medium bg-background text-text-secondary">
-                    {job.config.pageSize}
-                </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[12px] font-medium bg-background text-text-secondary">
-                    {job.config.copies} {job.config.copies === 1 ? 'copy' : 'copies'}
-                </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[12px] font-medium bg-background text-text-secondary">
-                    {job.pageCount} {job.pageCount === 1 ? 'page' : 'pages'}
-                </span>
-            </div>
-
-            {/* Special instructions */}
-            {job.config.specialInstructions && (
-                <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-3">
-                    <p className="text-[12px] font-medium text-amber-800">
-                        📝 {job.config.specialInstructions}
-                    </p>
+                <div className="text-[13px] text-text-muted">
+                    {totalDocs} document{totalDocs !== 1 ? 's' : ''}
                 </div>
-            )}
+            </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 pt-2 border-t border-border">
-                {job.fileUrl && (
-                    <a
-                        href={job.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] font-medium
-                       text-blue-primary bg-blue-light hover:bg-blue-200/50 transition-colors"
-                    >
-                        <ExternalLink size={14} />
-                        Open Document
-                    </a>
-                )}
-                {job.fileUrl && (
-                    <a
-                        href={job.fileUrl}
-                        download={job.fileName}
-                        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] font-medium
-                       text-text-secondary bg-background hover:bg-border/50 transition-colors"
-                    >
-                        <Download size={14} />
-                        Download
-                    </a>
-                )}
-                <div className="flex-1" />
+            {/* Document Items List */}
+            <div className="flex flex-col gap-4 mb-4">
+                {job.items?.map((item, idx) => (
+                    <div key={idx} className="bg-background rounded-lg p-3 border border-border/50">
+                        <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/50">
+                            <div className="flex items-center gap-2 max-w-[70%]">
+                                {getFileIcon(getFileExtension(item.fileName))}
+                                <span className="text-[13px] font-medium text-text-primary truncate" title={item.fileName}>
+                                    {item.fileName}
+                                </span>
+                            </div>
+                            <div className="flex gap-2">
+                                {item.fileUrl && (
+                                    <a
+                                        href={item.fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-primary hover:text-blue-600 transition-colors p-1"
+                                        title="View Document"
+                                    >
+                                        <ExternalLink size={16} />
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Specs */}
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            <Badge variant={item.config.colorMode === 'color' ? 'color' : 'bw'}>
+                                {item.config.colorMode === 'color' ? 'Colour' : 'B&W'}
+                            </Badge>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-white border border-border text-text-secondary">
+                                {item.config.sides === 'single' ? 'Single-sided' : 'Double-sided'}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-white border border-border text-text-secondary">
+                                {item.config.pageSize}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-white border border-border text-text-secondary">
+                                {item.config.copies} cop{item.config.copies === 1 ? 'y' : 'ies'}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-white border border-border text-text-secondary">
+                                {item.pageCount} page{item.pageCount === 1 ? '' : 's'}
+                            </span>
+                        </div>
+
+                        {/* Special instructions */}
+                        {item.config.specialInstructions && (
+                            <div className="mt-2 text-[12px] text-amber-700 bg-amber-50/50 p-2 rounded-md border border-amber-100/50">
+                                <span className="font-medium">Note:</span> {item.config.specialInstructions}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Actions Bottom */}
+            <div className="flex items-center justify-end gap-2 pt-2">
                 {job.status === 'printed' && onReopen && (
                     <Button
                         variant="ghost"
