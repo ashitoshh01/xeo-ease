@@ -11,6 +11,7 @@ const AdminQueue = lazy(() => import('./pages/AdminQueue'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 
+const ShopList = lazy(() => import('./pages/ShopList'));
 const CustomerAuth = lazy(() => import('./pages/CustomerAuth'));
 
 export default function App() {
@@ -18,8 +19,13 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          {/* Main App entry */}
+          <Route path="/" element={<ShopList />} />
+
+          {/* Specific Shop routes */}
+          <Route path="/:shopSlug" element={<CustomerUpload />} />
+
           {/* Customer Routes */}
-          <Route path="/" element={<CustomerUpload />} />
           <Route path="/confirmation" element={<Confirmation />} />
           <Route path="/login" element={<CustomerAuth />} />
 

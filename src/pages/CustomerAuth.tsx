@@ -148,6 +148,14 @@ export default function CustomerAuth() {
                         {isLogin ? 'Sign up' : 'Log in'}
                     </button>
                 </div>
+
+                {isLogin && (
+                    <div className="mt-6 pt-6 border-t border-border text-center">
+                        <Link to="/admin/login" className="text-[13px] text-text-muted hover:text-text-primary transition-colors font-medium">
+                            Store Owner? Admin Login
+                        </Link>
+                    </div>
+                )}
             </Card>
         </div>
     );

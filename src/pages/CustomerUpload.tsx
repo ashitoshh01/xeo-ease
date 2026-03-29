@@ -273,9 +273,11 @@ export default function CustomerUpload() {
         <div className="min-h-screen bg-background">
             {/* Header */}
             <header className="bg-white border-b border-border sticky top-0 z-10">
-                <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src="/logo.png" alt="PrintLoo" className="h-[40px] sm:h-[50px] w-auto object-contain cursor-pointer" />
+                        <Link to="/">
+                            <img src="/logo.png" alt="PrintLoo" className="h-[28px] sm:h-[32px] w-auto object-contain cursor-pointer" />
+                        </Link>
                         <div className="hidden sm:block">
                             <p className="text-[12px] text-text-secondary leading-tight mt-1">{shopName}</p>
                         </div>
