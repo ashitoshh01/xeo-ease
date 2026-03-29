@@ -248,9 +248,13 @@ export default function CustomerUpload() {
 
                     const jobId = await createJob(formData, finalItems, totalCost, response.razorpay_payment_id);
                     navigate(`/confirmation?jobId=${jobId}`);
-                } catch (error) {
+                } catch (error: any) {
                     console.error('Submission error:', error);
-                    setErrors({ submit: 'Payment succeeded, but job creation failed. Please contact the shop.' });
+                    // Critical error if money is already paid
+                    setErrors({ submit: 'Payment succeeded, but we couldn\'t upload your files. Please keep your Payment ID: ' + response.razorpay_payment_id });
+                    setLoading(false);
+                } finally {
+                    // Safety check to ensure loading is unset 
                     setLoading(false);
                 }
             },
